@@ -1,6 +1,6 @@
 #!/bin/bash
 
-g++ prog01.cpp
+g++ prog00.cpp
 if [ $? -eq 0 ]
 then
     ./a.out

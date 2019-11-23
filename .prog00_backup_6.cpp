@@ -4,7 +4,6 @@
 #include <iostream>
 #include <cmath>
 #include <limits>
-#include <stdlib.h>
 
 struct Light {
     Light(const Vec3f &p, const float &i) : position(p), intensity(i) {} 
@@ -21,28 +20,35 @@ struct Material {
 };
 
 struct Sphere {
-    Sphere(const Vec3f &c, const float &r, const Material &m) : center(c), radius(r), material(m) {}
-
     Vec3f center;
     float radius;
     Material material;
 
+    Sphere(const Vec3f &c, const float &r, const Material &m) : center(c), radius(r), material(m) {}
+
     bool ray_intersect(const Vec3f &orig, const Vec3f &dir, float &dist) const {
-        Vec3f l = orig - center;
-        float a = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
-        float b = 2 * (dir.x * l.x + dir.y * l.y + dir.z * l.z);
-        float c = l.x * l.x + l.y * l.y + l.z * l.z - radius * radius;
-        if (b * b < 4 * a * c) {
+        float a = dir.x - orig.x;
+        float b = dir.y - orig.y;
+        float c = dir.z - orig.z;
+        float d = orig.x - center.x;
+        float e = orig.y - center.y;
+        float f = orig.z - center.z;
+        float A = a * a + b * b + c * c;
+        float B = 2 * (a * d + b * e + c * f);
+        float C = d * d + e * e + f * f - radius * radius;
+        if (B * B < 4 * A * C) {
             return false;
         } else {
-            float d = b * b - 4 * a * c;
-            float solution1 = (-b - sqrt(d)) / (2 * a);
-            float solution2 = (-b + sqrt(d)) / (2 * a);
+            float D = B * B - 4 * A * C;
+            float solution1 = (-B - sqrt(D)) / (2 * A);
+            float solution2 = (-B + sqrt(D)) / (2 * A);
 
             if (std::max(solution1, solution2) >= 0) {
                 if (solution1 >= 0) {
+                    //dist = solution1 * sqrt(a * a + b * b + c * c);
                     dist = solution1;
                 } else {
+                    //dist = solution2 * sqrt(a * a + b * b + c * c);
                     dist = solution2;
                 }
                 return true;
@@ -77,6 +83,9 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
     Material material;
 
     if (depth > 4 || !scene_intersect(orig, dir, spheres, hit_point, N, material)) {
+        if (depth == 2) {
+            std::cout << "here!\n";
+        }
         return Vec3f(0.2, 0.7, 0.8);     // background colour            
     }
 
@@ -90,7 +99,7 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
         Vec3f light_dir = (lights[i].position - hit_point).normalize();
         float light_dist = (lights[i].position - hit_point).norm();
 
-        Vec3f shadow_orig = light_dir * N < 0 ? hit_point - N * 1e-3 : hit_point + N * 1e-3;
+        Vec3f shadow_orig = light_dir * N < 0 ? hit_point - N*1e-3 : hit_point + N*1e-3;
         Vec3f shadow_hit_point, shadow_N;
         Material tmpmaterial;
         if (scene_intersect(shadow_orig, light_dir, spheres, shadow_hit_point, shadow_N, tmpmaterial) && (shadow_hit_point - shadow_orig).norm() < light_dist) {
@@ -117,7 +126,7 @@ void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights
             float x = -img_width / 2. + i;
             float y = -img_height / 2. + j;
             float z = img_height / 2. / tan(fov / 2.);
-            Vec3f dir = Vec3f(x, -y, z).normalize();
+            Vec3f dir = Vec3f(x, -y, -z).normalize();
             img[i][j] = cast_ray(Vec3f(0, 0, 0), dir, spheres, lights, 0);
         }
     }
@@ -145,13 +154,13 @@ int main() {
     Material mirror(Vec3f(1.0, 1.0, 1.0), 1425., Vec3f(0.0, 10.0, 0.8));
     
     std::vector<Sphere> spheres;
-    spheres.push_back(Sphere(Vec3f(-3, 0, 16), 2, ivory));
-    spheres.push_back(Sphere(Vec3f(-1.0, -1.5, 12), 2, mirror));
-    spheres.push_back(Sphere(Vec3f(1.5, -0.5, 18), 3, red_rubber));
-    spheres.push_back(Sphere(Vec3f(7, 5, 18), 4, mirror));
+    spheres.push_back(Sphere(Vec3f(-3, 0, -16), 2, ivory));
+    spheres.push_back(Sphere(Vec3f(-1.0, -1.5, -12), 2, mirror));
+    spheres.push_back(Sphere(Vec3f(1.5, -0.5, -18), 3, red_rubber));
+    spheres.push_back(Sphere(Vec3f(7, 5, -18), 4, mirror));
 
     std::vector<Light> lights;
-    lights.push_back(Light(Vec3f(-20, 20, -20), 1.5));
+    lights.push_back(Light(Vec3f(-20, 20, 20), 1.5));
     lights.push_back(Light(Vec3f(30, 50, 25), 1.8));
     lights.push_back(Light(Vec3f(30, 20, -30), 1.7));
 

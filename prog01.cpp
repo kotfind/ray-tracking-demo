@@ -29,44 +29,22 @@ struct Sphere {
     Sphere(const Vec3f &c, const float &r, const Material &m) : center(c), radius(r), material(m) {}
 
     bool ray_intersect(const Vec3f &orig, const Vec3f &dir, float &dist) const {
-        Vec3f L = center - orig;
-        float tca = L*dir;
-        float d2 = L*L - tca*tca;
-        if (d2 > radius*radius) return false;
-        float thc = sqrtf(radius*radius - d2);
-        dist     = tca - thc;
-        float t1 = tca + thc;
-        if (dist < 0) dist = t1;
-        if (dist < 0) return false;
-        return true;
-    }
-
-    bool ray_intersect_2(const Vec3f &orig, const Vec3f &dir, float &dist) const {
-        double a = dir.x - orig.x;
-        double b = dir.y - orig.y;
-        double c = dir.z - orig.z;
-        double d = orig.x - center.x;
-        double e = orig.y - center.y;
-        double f = orig.z - center.z;
-        double A = a * a + b * b + c * c;
-        double B = 2 * (a * d + b * e + c * f);
-        double C = d * d + e * e + f * f - radius * radius;
-        if (B * B < 4 * A * C) {
+        Vec3f l = orig - center;
+        float a = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
+        float b = 2 * (dir.x * l.x + dir.y * l.y + dir.z * l.z);
+        float c = l.x * l.x + l.y * l.y + l.z * l.z - radius * radius;
+        if (b * b < 4 * a * c) {
             return false;
         } else {
-            double D = B * B - 4 * A * C;
-            double solution1 = (-B - sqrt(D)) / (2 * A);
-            double solution2 = (-B + sqrt(D)) / (2 * A);
-            double min_solution = std::min(solution1, solution2);
-            double max_solution = std::max(solution1, solution2);
+            float d = b * b - 4 * a * c;
+            float solution1 = (-b - sqrt(d)) / (2 * a);
+            float solution2 = (-b + sqrt(d)) / (2 * a);
 
-            if (max_solution >= 0) {
-                if (min_solution >= 0) {
-                    //dist = solution1 * sqrtf(a * a + b * b + c * c);
-                    dist = (float)min_solution;
+            if (std::max(solution1, solution2) >= 0) {
+                if (solution1 >= 0) {
+                    dist = solution1;
                 } else {
-                    //dist = solution2 * sqrtf(a * a + b * b + c * c);
-                    dist = (float)max_solution;
+                    dist = solution2;
                 }
                 return true;
             } else {
@@ -80,21 +58,13 @@ Vec3f reflect(const Vec3f &I, const Vec3f &N) {
     return I - N*2.f*(I*N);
 }
 
-bool scene_intersect(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &spheres, Vec3f &hit, Vec3f &N, Material &material, const size_t &depth) {
+bool scene_intersect(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &spheres, Vec3f &hit, Vec3f &N, Material &material) {
     float spheres_dist = std::numeric_limits<float>::max();
     for (size_t i=0; i < spheres.size(); i++) {
         float dist_i;
 
-        // float dist_i_2;
-        // if(spheres[i].ray_intersect_2(orig, dir, dist_i_2)) {
-        //     Vec3f p = orig + dir * dist_i_2;
-        //     std::cout << p << "\n";
-        // }
 
-        if (spheres[i].ray_intersect_2(orig, dir, dist_i) && dist_i < spheres_dist) {
-            // if (depth == 0)
-            //     std::cout << orig + dir * dist_i << "\n";
-
+        if (spheres[i].ray_intersect(orig, dir, dist_i) && dist_i < spheres_dist) {
             spheres_dist = dist_i;
             hit = orig + dir*dist_i;
             N = (hit - spheres[i].center).normalize();
@@ -108,7 +78,7 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
     Vec3f point, N;
     Material material;
 
-    if (depth>4 || !scene_intersect(orig, dir, spheres, point, N, material, depth)) {
+    if (depth>4 || !scene_intersect(orig, dir, spheres, point, N, material)) {
         return Vec3f(0.2, 0.7, 0.8); // background color
     }
 
@@ -124,7 +94,7 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
         Vec3f shadow_orig = light_dir*N < 0 ? point - N*1e-3 : point + N*1e-3; // checking if the point lies in the shadow of the lights[i]
         Vec3f shadow_pt, shadow_N;
         Material tmpmaterial;
-        if (scene_intersect(shadow_orig, light_dir, spheres, shadow_pt, shadow_N, tmpmaterial, depth) && (shadow_pt-shadow_orig).norm() < light_distance)
+        if (scene_intersect(shadow_orig, light_dir, spheres, shadow_pt, shadow_N, tmpmaterial) && (shadow_pt-shadow_orig).norm() < light_distance)
             continue;
 
         diffuse_light_intensity  += lights[i].intensity * std::max(0.f, light_dir*N);

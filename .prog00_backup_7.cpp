@@ -4,7 +4,6 @@
 #include <iostream>
 #include <cmath>
 #include <limits>
-#include <stdlib.h>
 
 struct Light {
     Light(const Vec3f &p, const float &i) : position(p), intensity(i) {} 
@@ -28,21 +27,28 @@ struct Sphere {
     Material material;
 
     bool ray_intersect(const Vec3f &orig, const Vec3f &dir, float &dist) const {
-        Vec3f l = orig - center;
-        float a = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
-        float b = 2 * (dir.x * l.x + dir.y * l.y + dir.z * l.z);
-        float c = l.x * l.x + l.y * l.y + l.z * l.z - radius * radius;
-        if (b * b < 4 * a * c) {
+        float a = dir.x - orig.x;
+        float b = dir.y - orig.y;
+        float c = dir.z - orig.z;
+        float d = orig.x - center.x;
+        float e = orig.y - center.y;
+        float f = orig.z - center.z;
+        float A = a * a + b * b + c * c;
+        float B = 2 * (a * d + b * e + c * f);
+        float C = d * d + e * e + f * f - radius * radius;
+        if (B * B < 4 * A * C) {
             return false;
         } else {
-            float d = b * b - 4 * a * c;
-            float solution1 = (-b - sqrt(d)) / (2 * a);
-            float solution2 = (-b + sqrt(d)) / (2 * a);
+            float D = B * B - 4 * A * C;
+            float solution1 = (-B - sqrt(D)) / (2 * A);
+            float solution2 = (-B + sqrt(D)) / (2 * A);
 
             if (std::max(solution1, solution2) >= 0) {
                 if (solution1 >= 0) {
+                    //dist = solution1 * sqrt(a * a + b * b + c * c);
                     dist = solution1;
                 } else {
+                    //dist = solution2 * sqrt(a * a + b * b + c * c);
                     dist = solution2;
                 }
                 return true;
@@ -76,7 +82,7 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
     Vec3f hit_point, N;
     Material material;
 
-    if (depth > 4 || !scene_intersect(orig, dir, spheres, hit_point, N, material)) {
+    if (depth > 6 || !scene_intersect(orig, dir, spheres, hit_point, N, material)) {
         return Vec3f(0.2, 0.7, 0.8);     // background colour            
     }
 
@@ -152,8 +158,8 @@ int main() {
 
     std::vector<Light> lights;
     lights.push_back(Light(Vec3f(-20, 20, -20), 1.5));
-    lights.push_back(Light(Vec3f(30, 50, 25), 1.8));
-    lights.push_back(Light(Vec3f(30, 20, -30), 1.7));
+    lights.push_back(Light(Vec3f(30, 50, -25), 1.8));
+    lights.push_back(Light(Vec3f(30, 20, 30), 1.7));
 
     render(spheres, lights);
 }
