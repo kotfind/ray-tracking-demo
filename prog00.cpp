@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <stdlib.h>
+#include <string>
 
 struct Light {
     Light(const Vec3f &p, const float &i) : position(p), intensity(i) {} 
@@ -87,37 +88,34 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Sphere> &s
     float diffuse_light_intensity = 0;
     float specular_light_intensity = 0;
     for (size_t i = 0; i < lights.size(); ++i) {
-        Vec3f light_dir = (lights[i].position - hit_point).normalize();
-        float light_dist = (lights[i].position - hit_point).norm();
+    Vec3f light_dir = (lights[i].position - hit_point).normalize();
+    float light_dist = (lights[i].position - hit_point).norm();
 
-        Vec3f shadow_orig = light_dir * N < 0 ? hit_point - N * 1e-3 : hit_point + N * 1e-3;
-        Vec3f shadow_hit_point, shadow_N;
-        Material tmpmaterial;
-        if (scene_intersect(shadow_orig, light_dir, spheres, shadow_hit_point, shadow_N, tmpmaterial) && (shadow_hit_point - shadow_orig).norm() < light_dist) {
-            continue;
-        }
-
-        diffuse_light_intensity += lights[i].intensity * std::max(0.f, light_dir * N);
-        specular_light_intensity += lights[i].intensity * powf(std::max(0.f, reflect(light_dir, N) * dir), material.specular_exponent);
+    Vec3f shadow_orig = light_dir * N < 0 ? hit_point - N * 1e-3 : hit_point + N * 1e-3;
+    Vec3f shadow_hit_point, shadow_N;
+    Material tmpmaterial;
+    if (scene_intersect(shadow_orig, light_dir, spheres, shadow_hit_point, shadow_N, tmpmaterial) && (shadow_hit_point - shadow_orig).norm() < light_dist) {
+        continue;
     }
+
+    diffuse_light_intensity += lights[i].intensity * std::max(0.f, light_dir * N);
+    specular_light_intensity += lights[i].intensity * powf(std::max(0.f, reflect(light_dir, N) * dir), material.specular_exponent);
+}
 
     return material.diffuse_colour * diffuse_light_intensity * material.albedo[0] +
            Vec3f(1., 1., 1.) * specular_light_intensity * material.albedo[1] +
            reflect_colour * material.albedo[2];
 }
 
-void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights) {
-    const int img_width = 1024;     // width
-    const int img_height = 768;     // height
-    const int fov = M_PI / 2.;       // vision angle
+void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights, int img_width, int img_height, float fov) {
     std::vector< std::vector<Vec3f> > img(img_width, std::vector<Vec3f>(img_height));
 
     for (size_t j = 0; j < img_height; ++j) {
         for (size_t i = 0; i < img_width; ++i) {
             float x = -img_width / 2. + i;
-            float y = -img_height / 2. + j;
+            float y = img_height / 2. - j;
             float z = img_height / 2. / tan(fov / 2.);
-            Vec3f dir = Vec3f(x, -y, z).normalize();
+            Vec3f dir = Vec3f(x, y, z).normalize();
             img[i][j] = cast_ray(Vec3f(0, 0, 0), dir, spheres, lights, 0);
         }
     }
@@ -140,20 +138,57 @@ void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights
 }
 
 int main() {
-    Material ivory(Vec3f(0.4, 0.4, 0.3), 50., Vec3f(0.6, 0.3, 0.1));
-    Material red_rubber(Vec3f(0.3, 0.1, 0.1), 10., Vec3f(0.9, 0.1, 0.0));
-    Material mirror(Vec3f(1.0, 1.0, 1.0), 1425., Vec3f(0.0, 10.0, 0.8));
-    
+    int img_width, img_height;
+    float fov;
+    std::cout << "Для ввода целого числа     (int)              напишите его и нажмите Enter.\n";
+    std::cout << "          дробного числа   (float)            напишите его, используя десятичную точку, и нажмите Enter.\n";
+    std::cout << "          нескольких чисел (multiple numbers) напишите их через пробел без каких-либо других разделителей и нажмите Enter.\n";
+    std::cout << "          списка           (list)             напишите каждый его элемент на новой строке, после ввода всех элементов введите -666.\n\n";
+
+    std::cout << "Цвета       вводятся, как 3 числа типа float (от 0 до 1 каждое), обозначающие красную, синюю и зеленую компоненты в цветовой модели rgb.\n";
+    std::cout << "Коэффициеты вводятся, как числа типа float.\n\n";
+
+    std::cout << "Введите ширину картинки (int):          "; std::cin >> img_width;
+    std::cout << "Введите высоту картинки (int):          "; std::cin >> img_height;
+    std::cout << "Введите угол обзора в градусах (float): "; std::cin >> fov;
+
+    std::cout << "\nВведите список (list) материалов в формате (цвет; показатель бликов (float); коэффициенты влияния: собственного цвета, бликов, отражения):\n";
+    std::vector<Material> materials;
+    float r, g, b, spec_exp, a0, a1, a2;
+    for (size_t i = 1; 1; ++i) {
+        std::cout << i << ". ";
+        std::cin >> r; if (r == -666) break;
+        std::cin >> g >> b >> spec_exp >> a0 >> a1 >> a2;
+        materials.push_back(Material(Vec3f(r, g, b), spec_exp, Vec3f(a0, a1, a2)));
+    }
+    std::cout << "\n\n";
+
+
+    std::cout << "Камера находится по координатам (0, 0, 0) и направлена вдоль третьей оси.\n\n";
+    std::cout << "Введите список (list) сфер в формате (координаты (3 числа float); радиус(float); номер материала):\n";
     std::vector<Sphere> spheres;
-    spheres.push_back(Sphere(Vec3f(-3, 0, 16), 2, ivory));
-    spheres.push_back(Sphere(Vec3f(-1.0, -1.5, 12), 2, mirror));
-    spheres.push_back(Sphere(Vec3f(1.5, -0.5, 18), 3, red_rubber));
-    spheres.push_back(Sphere(Vec3f(7, 5, 18), 4, mirror));
+    float x, y, z, rad;
+    int imat;
+    for (size_t i = 1; 1; ++i) {
+        std::cout << i << ". ";
+        std::cin >> x; if (x == -666) break;
+        std::cin >> y >> z >> rad >> imat;
+        spheres.push_back(Sphere(Vec3f(x, y, z), rad, materials[imat - 1]));
+    }
+    std::cout << "\n\n";
 
+
+    std::cout << "Введите список (list) источников света в формате (координаты (3 числа float); интенсивность (float)):\n";
     std::vector<Light> lights;
-    lights.push_back(Light(Vec3f(-20, 20, -20), 1.5));
-    lights.push_back(Light(Vec3f(30, 50, 25), 1.8));
-    lights.push_back(Light(Vec3f(30, 20, -30), 1.7));
+    float intens;
+    for (size_t i = 1; 1; ++i) {
+        std::cout << i << ". ";
+        std::cin >> x; if (x == -666) break;
+        std::cin >> y >> z >> intens;
+        lights.push_back(Light(Vec3f(x, y, z), intens));
+    }
 
-    render(spheres, lights);
+    std::cout << "\nПрограмма начала работу... Позднее вы получите сообщение о завершении работы.\n";
+    render(spheres, lights, img_width, img_height, fov * M_PI / 180);
+    std::cout << "Работа завершена! Картинка сохранена под именем \"out.ppm.\"\n";
 }
