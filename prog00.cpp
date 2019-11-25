@@ -140,19 +140,19 @@ void render(const std::vector<Sphere> &spheres, const std::vector<Light> &lights
 int main() {
     int img_width, img_height;
     float fov;
-    std::cout << "Для ввода целого числа     (int)              напишите его и нажмите Enter.\n";
-    std::cout << "          дробного числа   (float)            напишите его, используя десятичную точку, и нажмите Enter.\n";
-    std::cout << "          нескольких чисел (multiple numbers) напишите их через пробел без каких-либо других разделителей и нажмите Enter.\n";
-    std::cout << "          списка           (list)             напишите каждый его элемент на новой строке, после ввода всех элементов введите -666.\n\n";
+    std::cout << "To enter integer (int) write it and press Enter key.\n";
+    std::cout << "To enter fractional number (float) write it, using decimal point, and press Enter key.\n";
+    std::cout << "To enter multiple numbers wirte them with spaces whithout other separators and press Enter key.\n";
+    std::cout << "To enter list write each element with a new line, then write -666 and press Enter key.\n\n";
 
-    std::cout << "Цвета       вводятся, как 3 числа типа float (от 0 до 1 каждое), обозначающие красную, синюю и зеленую компоненты в цветовой модели rgb.\n";
-    std::cout << "Коэффициеты вводятся, как числа типа float.\n\n";
+    std::cout << "Colours are entering as 3 float numbers (from 0 to 1), each number means red, green or blue component in rgb color model.\n";
+    std::cout << "Factors are entering as float numbers.\n\n";
 
-    std::cout << "Введите ширину картинки (int):          "; std::cin >> img_width;
-    std::cout << "Введите высоту картинки (int):          "; std::cin >> img_height;
-    std::cout << "Введите угол обзора в градусах (float): "; std::cin >> fov;
+    std::cout << "Enter image width (int):                "; std::cin >> img_width;
+    std::cout << "Enter image height (int):               "; std::cin >> img_height;
+    std::cout << "Enter field of view in degrees (float): "; std::cin >> fov;
 
-    std::cout << "\nВведите список (list) материалов в формате (цвет; показатель бликов (float); коэффициенты влияния: собственного цвета, бликов, отражения):\n";
+    std::cout << "\nEnter the list of the materials in format (colour; specular exponent (float); influence factors of: own colour, specularity, reflection):\n";
     std::vector<Material> materials;
     float r, g, b, spec_exp, a0, a1, a2;
     for (size_t i = 1; 1; ++i) {
@@ -164,8 +164,8 @@ int main() {
     std::cout << "\n\n";
 
 
-    std::cout << "Камера находится по координатам (0, 0, 0) и направлена вдоль третьей оси.\n\n";
-    std::cout << "Введите список (list) сфер в формате (координаты (3 числа float); радиус(float); номер материала):\n";
+    std::cout << "The camera locates in coordinates (0, 0, 0) and directed along 3rd axis.\n\n";
+    std::cout << "Enter the list of the spheres in format (coordinates (3 float numbers)); radius (float); material number (int)):\n";
     std::vector<Sphere> spheres;
     float x, y, z, rad;
     int imat;
@@ -178,7 +178,7 @@ int main() {
     std::cout << "\n\n";
 
 
-    std::cout << "Введите список (list) источников света в формате (координаты (3 числа float); интенсивность (float)):\n";
+    std::cout << "Enter the list of the sources of light in format (coordinates (3 float numbers); intensity (float)):\n";
     std::vector<Light> lights;
     float intens;
     for (size_t i = 1; 1; ++i) {
@@ -188,7 +188,7 @@ int main() {
         lights.push_back(Light(Vec3f(x, y, z), intens));
     }
 
-    std::cout << "\nПрограмма начала работу... Позднее вы получите сообщение о завершении работы.\n";
+    std::cout << "\nThe programm has begun to work.. Layter you'll get completion notifications.\n";
     render(spheres, lights, img_width, img_height, fov * M_PI / 180);
-    std::cout << "Работа завершена! Картинка сохранена под именем \"out.ppm.\"\n";
+    std::cout << "The work is completed! The image is saved under the name \"out.ppm.\"\n";
 }
